@@ -87,4 +87,3 @@ commit it to a public repository. If you plan to use version control, add
 ## License
 
 MIT — use freely.
-# Steem-Batch-Transfer-Bot
