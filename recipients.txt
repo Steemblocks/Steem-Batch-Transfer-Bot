@@ -1,0 +1,20 @@
+# ============================================================
+#  recipients.txt — Steem Batch Transfer Recipient List
+# ============================================================
+#
+#  How to edit:
+#  - Enter one recipient per line.
+#  - Format:  username  amount  [optional memo]
+#    OR:      username, amount, [optional memo]
+#  - Amounts must have exactly 3 decimal places (e.g. 1.000).
+#  - Lines starting with # are comments and are ignored.
+#
+#  Examples:
+#    recipient1 1.000 Monthly payment
+#    recipient2 0.500 Thanks!
+#    recipient3 2.250
+# ============================================================
+
+recipient1 1.000 Monthly payment
+recipient2 0.500 Thanks!
+recipient3 2.250

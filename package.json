@@ -1,0 +1,12 @@
+{
+  "name": "steem-batch-transfer",
+  "version": "1.0.0",
+  "description": "Batch transfer STEEM from your account to multiple recipients in one run.",
+  "main": "transfer.js",
+  "scripts": {
+    "start": "node transfer.js"
+  },
+  "dependencies": {
+    "dsteem": "^0.11.3"
+  }
+}
