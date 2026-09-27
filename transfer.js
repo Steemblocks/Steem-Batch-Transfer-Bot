@@ -10,16 +10,14 @@ const config = require("./config");
 
 // ── Helpers ─────────────────────────────────────────────────
 
-/** Pad / normalise an amount string to exactly 3 decimals */
 function normaliseAmount(raw) {
   const num = parseFloat(raw);
-  if (isNaN(num) || num <= 0) {
+  if (isNaN(num) || num < 0) {
     throw new Error(`Invalid amount: "${raw}"`);
   }
   return num.toFixed(3);
 }
 
-/** Pretty-print a line with colour (works on most terminals) */
 const colours = {
   reset: "\x1b[0m",
   green: "\x1b[32m",
@@ -48,13 +46,6 @@ function heading(msg) {
 
 // ── Recipients Loader ───────────────────────────────────────
 
-/**
- * Loads recipients from recipients.txt (or configured file)
- * Supports:
- *   username amount memo
- *   username, amount, memo
- * Skips empty lines and lines starting with # or //
- */
 function loadTransfers() {
   const fileName = config.recipientsFile || "recipients.txt";
   const filePath = path.resolve(__dirname, fileName);
@@ -69,134 +60,100 @@ function loadTransfers() {
       const line = lines[i].trim();
       const lineNum = i + 1;
 
-      // Skip blank lines and comments
-      if (!line || line.startsWith("#") || line.startsWith("//")) {
-        continue;
-      }
+      if (!line || line.startsWith("#") || line.startsWith("//")) continue;
 
-      let to = "";
-      let amount = "";
-      let memo = "";
+      let to = "", amount = "", memo = "";
 
       if (line.includes(",")) {
-        // Comma-separated: username, amount, memo
         const parts = line.split(",");
         to = parts[0].trim();
         amount = parts[1] ? parts[1].trim() : "";
         memo = parts.slice(2).join(",").trim();
       } else {
-        // Space-separated: username amount memo...
         const match = line.match(/^(\S+)\s+(\S+)(?:\s+(.*))?$/);
         if (!match) {
-          throw new Error(
-            `${fileName} (line ${lineNum}): Invalid format. Expected: username amount [memo]`
-          );
+          throw new Error(`${fileName} (line ${lineNum}): Invalid format. Expected: username amount [memo]`);
         }
         to = match[1].trim();
         amount = match[2].trim();
         memo = match[3] ? match[3].trim() : "";
       }
 
-      // Remove quotation marks around memo if any
-      if (
-        (memo.startsWith('"') && memo.endsWith('"')) ||
-        (memo.startsWith("'") && memo.endsWith("'"))
-      ) {
+      if ((memo.startsWith('"') && memo.endsWith('"')) || (memo.startsWith("'") && memo.endsWith("'"))) {
         memo = memo.slice(1, -1);
       }
+      if (to.startsWith("@")) to = to.slice(1);
 
-      // Strip leading @ from username if user typed it
-      if (to.startsWith("@")) {
-        to = to.slice(1);
+      if (!to) throw new Error(`${fileName} (line ${lineNum}): Recipient username is empty.`);
+      if (!amount) throw new Error(`${fileName} (line ${lineNum}): Amount is missing for recipient "${to}".`);
+
+      // Catch negative amounts early with a clear message
+      if (parseFloat(amount) < 0) {
+        throw new Error(`${fileName} (line ${lineNum}): Negative amount "${amount}" is not allowed.`);
       }
 
-      // Validate username is not empty after stripping
-      if (!to) {
-        throw new Error(
-          `${fileName} (line ${lineNum}): Recipient username is empty.`
-        );
-      }
-
-      // Validate amount is present
-      if (!amount) {
-        throw new Error(
-          `${fileName} (line ${lineNum}): Amount is missing for recipient "${to}".`
-        );
-      }
-
-      // Warn about duplicate recipients (same user receives multiple transfers)
       if (seenRecipients.has(to)) {
-        warn(
-          `${fileName} (line ${lineNum}): Duplicate recipient "@${to}" — they will receive multiple transfers.`
-        );
+        warn(`${fileName} (line ${lineNum}): Duplicate recipient "@${to}" — they will receive multiple transfers.`);
       }
       seenRecipients.add(to);
-
       transfers.push({ to, amount, memo, lineNum });
     }
-
     return { transfers, source: fileName };
   }
 
-  // Fallback: check if transfers are defined directly in config.js
   if (Array.isArray(config.transfers) && config.transfers.length > 0) {
     return { transfers: config.transfers, source: "config.js" };
   }
-
   throw new Error(`Recipients file not found: "${fileName}"`);
 }
 
 // ── Validation ──────────────────────────────────────────────
 
 function validateConfig(transfers, source) {
-  if (!config.sender || config.sender === "your-steem-username") {
-    throw new Error(
-      'Please set your Steem username in config.js (field: "sender").'
-    );
+  const placeholderSenders = ["your-steem-username", "your_username"];
+  if (!config.sender || placeholderSenders.includes(config.sender)) {
+    throw new Error('Please set your Steem username in config.js (field: "sender").');
   }
-  if (!config.activeKey || config.activeKey === "5K...") {
-    throw new Error(
-      'Please set your active private key in config.js (field: "activeKey").'
-    );
+  const placeholderKeys = ["5K...", "5J________________________________"];
+  if (!config.activeKey || placeholderKeys.includes(config.activeKey)) {
+    throw new Error('Please set your active private key in config.js (field: "activeKey").');
   }
   if (!Array.isArray(transfers) || transfers.length === 0) {
-    throw new Error(
-      `No transfers found in ${source}. Please add at least one recipient.`
-    );
+    throw new Error(`No transfers found in ${source}. Please add at least one recipient.`);
   }
 
   let totalAmount = 0;
+  const validTransfers = [];
 
   for (const [i, t] of transfers.entries()) {
-    const loc = t.lineNum
-      ? `${source} (line ${t.lineNum})`
-      : `Transfer #${i + 1}`;
-    if (!t.to || typeof t.to !== "string") {
-      throw new Error(`${loc}: recipient username is missing.`);
-    }
-    if (t.to.startsWith("@")) {
-      t.to = t.to.slice(1);
-    }
-
-    // Prevent sending to yourself
+    const loc = t.lineNum ? `${source} (line ${t.lineNum})` : `Transfer #${i + 1}`;
+    if (!t.to || typeof t.to !== "string") throw new Error(`${loc}: recipient username is missing.`);
+    if (t.to.startsWith("@")) t.to = t.to.slice(1);
     if (t.to.toLowerCase() === config.sender.toLowerCase()) {
-      throw new Error(
-        `${loc}: Cannot transfer to yourself ("@${t.to}").`
-      );
+      throw new Error(`${loc}: Cannot transfer to yourself ("@${t.to}").`);
     }
-
     try {
-      const amt = normaliseAmount(t.amount);
-      totalAmount += parseFloat(amt);
+      const amt = parseFloat(normaliseAmount(t.amount));
+      if (amt === 0) {
+        warn(`${loc}: Amount is 0.000. Skipping transfer to "@${t.to}".`);
+        continue;
+      }
+      totalAmount = (Math.round(totalAmount * 1000) + Math.round(amt * 1000)) / 1000;
+      validTransfers.push(t);
     } catch {
-      throw new Error(
-        `${loc}: Invalid amount "${t.amount}". Must be a number like "1.000".`
-      );
+      throw new Error(`${loc}: Invalid amount "${t.amount}". Must be a number like "1.000".`);
     }
   }
 
-  info(`Total to send: ${totalAmount.toFixed(3)} STEEM across ${transfers.length} transfer(s)`);
+  if (validTransfers.length === 0) {
+    throw new Error(`No valid transfers found to process.`);
+  }
 
+  // Update the transfers array in place with only the valid ones
+  transfers.length = 0;
+  transfers.push(...validTransfers);
+
+  info(`Total to send: ${totalAmount.toFixed(3)} STEEM across ${transfers.length} transfer(s)`);
   return totalAmount;
 }
 
@@ -207,7 +164,6 @@ async function main() {
   heading("        STEEM BATCH TRANSFER BOT");
   heading("══════════════════════════════════════════");
 
-  // 1. Load transfers and validate
   let transfers = [];
   let source = "recipients.txt";
   let totalAmount = 0;
@@ -222,38 +178,53 @@ async function main() {
     process.exit(1);
   }
 
-  const client = new dsteem.Client(config.rpcNode || "https://api.steemit.com");
-  const key = dsteem.PrivateKey.fromString(config.activeKey);
+  const nodes = config.rpcNodes || [config.rpcNode || "https://api.steemit.com"];
+  let client = null;
+  let key = null;
 
-  info(`Sender   : @${config.sender}`);
-  info(`RPC Node : ${config.rpcNode || "https://api.steemit.com"}`);
-  info(`List     : ${transfers.length} recipient(s) from ${source}\n`);
-
-  // 2. Quick connectivity check — fetch sender account & verify balance
   try {
-    const [account] = await client.database.getAccounts([config.sender]);
-    if (!account) {
-      fail(`Account @${config.sender} not found on the blockchain.`);
-      process.exit(1);
-    }
-
-    const balanceStr = account.balance; // e.g. "123.456 STEEM"
-    const availableBalance = parseFloat(balanceStr);
-    info(`Balance  : ${balanceStr}`);
-
-    if (!isNaN(availableBalance) && availableBalance < totalAmount) {
-      fail(
-        `Insufficient balance! Need ${totalAmount.toFixed(3)} STEEM but only have ${balanceStr}.`
-      );
-      process.exit(1);
-    }
-    console.log();
+    key = dsteem.PrivateKey.fromString(config.activeKey);
   } catch (err) {
-    fail(`Could not connect to RPC node: ${err.message}`);
+    fail(`Invalid activeKey provided in config.js. Please check your private key.`);
     process.exit(1);
   }
 
-  // 3. Process each transfer sequentially
+  info(`Sender   : @${config.sender}`);
+  info(`List     : ${transfers.length} recipient(s) from ${source}\n`);
+
+  for (const node of nodes) {
+    try {
+      info(`Trying RPC Node: ${node} ...`);
+      const tempClient = new dsteem.Client(node, { timeout: 8000 });
+      const [account] = await tempClient.database.getAccounts([config.sender]);
+
+      if (!account) {
+        fail(`Account @${config.sender} not found on the blockchain.`);
+        process.exit(1); // Fatal error, not a node issue
+      }
+
+      const balanceStr = account.balance;
+      const availableBalance = parseFloat(balanceStr);
+      success(`Connected! Balance: ${balanceStr}`);
+
+      if (!isNaN(availableBalance) && availableBalance < totalAmount) {
+        fail(`Insufficient balance! Need ${totalAmount.toFixed(3)} STEEM but only have ${balanceStr}.`);
+        process.exit(1);
+      }
+      console.log();
+
+      client = tempClient;
+      break; // Successfully connected, break the loop
+    } catch (err) {
+      warn(`Failed to connect to ${node}: ${err.message}`);
+    }
+  }
+
+  if (!client) {
+    fail(`Could not connect to any RPC nodes! Please check your internet connection or add more nodes.`);
+    process.exit(1);
+  }
+
   let succeeded = 0;
   let failed = 0;
 
@@ -278,20 +249,16 @@ async function main() {
       failed++;
     }
 
-    // Small delay to be polite to the API node
     if (index < transfers.length - 1) {
       await new Promise((r) => setTimeout(r, 1500));
     }
   }
 
-  // 4. Summary
   heading("──────────── SUMMARY ─────────────");
   info(`Total: ${transfers.length}  |  ✔ ${succeeded}  |  ✖ ${failed}`);
   console.log();
 
-  if (failed > 0) {
-    process.exit(1);
-  }
+  if (failed > 0) process.exit(1);
 }
 
 if (require.main === module) {

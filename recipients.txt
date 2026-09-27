@@ -15,6 +15,5 @@
 #    recipient3 2.250
 # ============================================================
 
-recipient1 1.000 Monthly payment
-recipient2 0.500 Thanks!
-recipient3 2.250
+dhaka.witness 0.005 Bot test
+global-steem 0.002 Bot test hello!

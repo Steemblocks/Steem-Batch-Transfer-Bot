@@ -5,16 +5,21 @@
 module.exports = {
   // ── Your Steem Account ────────────────────────────────────
   // The account that will SEND the STEEM.
-  sender: "your-steem-usernam",
+  sender: "your_username",
 
   // The **active key** (private) for the sender account.
   // ⚠️  NEVER share this key or commit it to a public repo.
-  activeKey: "5K...",
+  activeKey: "5J________________________________",
 
-  // ── Steem API Node ────────────────────────────────────────
-  // Public RPC node to connect to. Change if you prefer a
-  // different one (e.g. "https://api.steemit.com").
-  rpcNode: "https://api.steemit.com",
+  // ── Steem API Nodes ───────────────────────────────────────
+  // The bot will try these nodes in order until one connects successfully.
+  rpcNodes: [
+    "https://api.steemit.com",
+    "https://api.moecki.online",
+    "https://steemd.steemworld.org",
+    "https://api.justyy.com",
+    "https://api.steememory.com"
+  ],
 
   // ── Recipients List File ──────────────────────────────────
   // Path to the text file containing recipients and amounts.

@@ -4,7 +4,7 @@
   "description": "Batch transfer STEEM from your account to multiple recipients in one run.",
   "main": "transfer.js",
   "scripts": {
-    "start": "node transfer.js"
+    "start": "node --disable-warning=DEP0040 transfer.js"
   },
   "dependencies": {
     "dsteem": "^0.11.3"

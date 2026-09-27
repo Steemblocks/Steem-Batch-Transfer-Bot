@@ -1,7 +1,8 @@
 # Steem Batch Transfer Bot
 
-A simple Node.js bot that transfers STEEM from your account to multiple
-recipients in one run.
+A simple Node.js bot that transfers STEEM from your account to
+multiple recipients in one run. Features auto node switching,
+balance verification, and duplicate detection.
 
 ---
 
@@ -9,7 +10,8 @@ recipients in one run.
 
 ### 1. Install Node.js
 
-Download and install from [nodejs.org](https://nodejs.org/) (LTS version recommended).
+Download and install from
+[nodejs.org](https://nodejs.org/) (LTS version recommended).
 
 ### 2. Install Dependencies
 
@@ -21,21 +23,25 @@ npm install
 
 ### 3. Configure Your Account
 
-Open **`config.js`** in any text editor and fill in your Steem credentials:
+Open **`config.js`** in any text editor and fill in your
+Steem credentials:
 
-| Field       | Description                                         |
-| ----------- | --------------------------------------------------- |
-| `sender`    | Your Steem username (without `@`)                   |
-| `activeKey` | Your account's **active private key**               |
-| `rpcNode`   | Steem API node (default: `https://api.steemit.com`) |
+| Field       | Description                              |
+| ----------- | ---------------------------------------- |
+| `sender`    | Your Steem username (without `@`)        |
+| `activeKey` | Your account's **active private key**    |
+| `rpcNodes`  | Array of API nodes (auto-switches order) |
 
-### 4. Edit Recipients List in Notepad
+The bot automatically tries each node in `rpcNodes` until one
+responds. You can reorder or add/remove nodes as needed.
 
-Open **`recipients.txt`** directly in **Notepad** (or any text editor).
-Add one recipient per line using either space-separated or comma-separated format:
+### 4. Edit Recipients List
+
+Open **`recipients.txt`** in **Notepad** (or any text editor).
+Add one recipient per line:
 
 ```text
-username amount [optional memo]
+username amount memo
 ```
 
 Examples:
@@ -46,41 +52,71 @@ recipient2 0.500 Thanks!
 recipient3 2.250
 ```
 
-- **Username**: Recipient's Steem name (with or without `@`).
-- **Amount**: STEEM amount with 3 decimal places (e.g. `1.000`, `0.500`).
-- **Memo**: Optional note (leave blank if not needed).
-- Lines starting with `#` are treated as comments and ignored.
+- **Username** — Steem name (with or without `@`)
+- **Amount** — STEEM with 3 decimal places (e.g. `1.000`)
+- **Memo** — optional (leave blank if not needed)
+- Lines starting with `#` are comments and ignored
+- Setting amount to `0.000` will skip that recipient
 
 ### 5. Run the Bot
 
+**Windows:** Double-click **`start.bat`**
+
+**macOS / Linux:** Double-click **`start.sh`** or run in terminal:
+
 ```bash
-npm start
+sh start.sh
+```
+
+**From any terminal (CMD, PowerShell, Terminal):**
+
+```bash
+npm start -s
 ```
 
 The bot will:
 
 1. Validate your config and `recipients.txt`
-2. Check your account balance
-3. Send each transfer one by one
-4. Print a summary of successes / failures
+2. Auto-connect to the first available RPC node
+3. Check your account balance before sending
+4. Send each transfer one by one
+5. Print a summary of successes / failures
 
 ---
 
-## ⚠️ Security Warning
+## Features
 
-Your **active key** is stored in `config.js`. **Never** share this file or
-commit it to a public repository. If you plan to use version control, add
-`config.js` to your `.gitignore`.
+- **Auto node switching** — cycles through `rpcNodes` if one
+  is down
+- **Balance check** — verifies you have enough STEEM before
+  starting
+- **Self-transfer block** — prevents accidentally sending to
+  yourself
+- **Duplicate warnings** — alerts if the same user appears
+  twice
+- **Zero-amount skip** — set amount to `0.000` to temporarily
+  disable a recipient
+- **Cross-platform** — works on Windows, macOS, and Linux
+
+---
+
+## Security Warning
+
+Your **active key** is stored in `config.js`.
+**Never** share this file or commit it to a public repository.
+A `.gitignore` is included to prevent accidental commits.
 
 ---
 
 ## Troubleshooting
 
-| Problem                         | Fix                                                               |
-| ------------------------------- | ----------------------------------------------------------------- |
-| `Account not found`             | Double-check the `sender` username in `config.js`                 |
-| `Invalid amount`                | Ensure the amount is a positive number string like `"1.000"`      |
-| `Could not connect to RPC node` | Try a different node in `rpcNode`, e.g. `https://api.steemit.com` |
+| Problem                         | Fix                                            |
+| ------------------------------- | ---------------------------------------------- |
+| `Account not found`             | Check `sender` in `config.js`                  |
+| `Invalid amount`                | Use a positive number like `"1.000"`           |
+| `Could not connect to any node` | Check your internet or add more nodes          |
+| `Insufficient balance`          | Top up your account before running             |
+| `Invalid activeKey`             | Verify your active private key in `config.js`  |
 
 ---
 
