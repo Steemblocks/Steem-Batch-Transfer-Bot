@@ -4,12 +4,6 @@ A simple Node.js bot that transfers STEEM from your account to
 multiple recipients in one run. Features auto node switching,
 balance verification, and duplicate detection.
 
-
-
-<img width="975" height="512" alt="image" src="https://github.com/user-attachments/assets/4702204d-5f0e-40db-8ed7-4dba8521243b" />
-
-
-
 ---
 
 ## Quick Start
