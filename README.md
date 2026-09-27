@@ -3,8 +3,9 @@
 A simple Node.js bot that transfers STEEM from your account to multiple
 recipients in one run.
 
-<img width="960" height="474" alt="image" src="https://github.com/user-attachments/assets/9c03d935-f9d7-4fe2-8266-098415c58bcb" />
 
+
+<img width="975" height="512" alt="image" src="https://github.com/user-attachments/assets/4702204d-5f0e-40db-8ed7-4dba8521243b" />
 
 
 
