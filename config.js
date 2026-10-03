@@ -5,11 +5,11 @@
 module.exports = {
   // ── Your Steem Account ────────────────────────────────────
   // The account that will SEND the STEEM.
-  sender: "bijoy1",
+  sender: "dhaka.witness",
 
   // The **active key** (private) for the sender account.
   // ⚠️  NEVER share this key or commit it to a public repo.
-  activeKey: "5J________________________________",
+  activeKey: "5J-----------------------------------------------------------------",
 
   // ── Steem API Nodes ───────────────────────────────────────
   // The bot will try these nodes in order until one connects successfully.
