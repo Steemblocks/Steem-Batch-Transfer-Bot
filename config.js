@@ -5,7 +5,7 @@
 module.exports = {
   // ── Your Steem Account ────────────────────────────────────
   // The account that will SEND the STEEM.
-  sender: "your_username",
+  sender: "bijoy1",
 
   // The **active key** (private) for the sender account.
   // ⚠️  NEVER share this key or commit it to a public repo.

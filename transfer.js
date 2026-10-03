@@ -64,7 +64,9 @@ function loadTransfers() {
 
       let to = "", amount = "", memo = "";
 
-      if (line.includes(",")) {
+      // Comma format only when the comma directly follows the username,
+      // so a memo like "Thanks, friend" isn't mis-parsed.
+      if (/^[^\s,]+\s*,/.test(line)) {
         const parts = line.split(",");
         to = parts[0].trim();
         amount = parts[1] ? parts[1].trim() : "";
