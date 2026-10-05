@@ -5,7 +5,7 @@ multiple recipients in one run. Features auto node switching,
 balance verification, duplicate detection, vote history, and
 curation reports.
 
-![image](https://github.com/user-attachments/assets/9e653420-a279-483f-a399-e1ab77068648)
+![image](https://github.com/user-attachments/assets/a10e6466-4ed3-468d-bf8a-55eaae7d6f92)
 
 ---
 
