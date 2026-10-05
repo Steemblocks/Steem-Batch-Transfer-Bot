@@ -77,7 +77,8 @@
 
   const ROUTES = {
     "/": { title: "Recipients" },
-    "/history": { title: "Vote History", onEnter: () => { if (!votesFetchedOnce) loadVotes(); } },
+    // Votes are fetched only when the user clicks "Load Votes" / "Refresh"
+    "/history": { title: "Vote History" },
     "/report": { title: "Report" },
     "/settings": { title: "Settings" },
   };
@@ -603,6 +604,7 @@
   const votesFooter = $("#votesFooter");
   const votesTotalBadge = $("#votesTotalBadge");
   const btnRefreshVotes = $("#btnRefreshVotes");
+  const btnRefreshVotesLabel = $("#btnRefreshVotesLabel");
   const votesFilterMatch = $("#votesFilterMatch");
 
   // Shared with report generation (SPA keeps this across views)
@@ -726,6 +728,7 @@
     } finally {
       hide(votesLoading);
       btnRefreshVotes.classList.remove("loading");
+      btnRefreshVotesLabel.textContent = "Refresh";
     }
   }
 
@@ -736,7 +739,8 @@
     votesGrid.innerHTML = "";
     votesFilterMatch.textContent = "";
     hide(votesFooter);
-    votesEmptyText.innerHTML = 'Click <strong>"Refresh"</strong> to load your recent votes.';
+    votesEmptyText.innerHTML = 'Click <strong>"Load Votes"</strong> to fetch your recent votes.';
+    btnRefreshVotesLabel.textContent = "Load Votes";
     show(votesEmpty);
     resetReport();
   }
