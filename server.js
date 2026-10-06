@@ -83,6 +83,11 @@ module.exports = {
   // ⚠️  NEVER share this key or commit it to a public repo.
   activeKey: ${JSON.stringify(data.activeKey || "5J________________________________")},
 
+  // ── Track Account ─────────────────────────────────────────
+  // The account whose vote history and reports are tracked.
+  // This is separate from the sender — no private key needed.
+  trackAccount: ${JSON.stringify(data.trackAccount || "")},
+
   // ── Steem API Nodes ───────────────────────────────────────
   // The bot will try these nodes in order until one connects successfully.
   rpcNodes: [
@@ -200,6 +205,7 @@ app.get("/api/config", (req, res) => {
       sender: hasRealSender(cfg) ? cfg.sender : "",
       hasKey: keySet,
       keyHint: keySet ? `${cfg.activeKey.slice(0, 2)}••••••••${cfg.activeKey.slice(-4)}` : "",
+      trackAccount: cfg.trackAccount || "",
       rpcNodes: cfg.rpcNodes || [],
     });
   } catch (err) {
@@ -210,7 +216,7 @@ app.get("/api/config", (req, res) => {
 // POST config (save sender, key, nodes). A blank key keeps the stored one.
 app.post("/api/config", (req, res) => {
   try {
-    const { sender, activeKey, rpcNodes } = req.body || {};
+    const { sender, activeKey, trackAccount, rpcNodes } = req.body || {};
     const current = readConfig();
 
     const cleanSender = String(sender || "").trim().replace(/^@/, "").toLowerCase();
@@ -224,12 +230,14 @@ app.post("/api/config", (req, res) => {
       return res.status(400).json({ error: "Active key is required." });
     }
 
+    const cleanTrack = String(trackAccount || "").trim().replace(/^@/, "").toLowerCase();
+
     const nodes = Array.isArray(rpcNodes) ? rpcNodes.map((n) => String(n).trim()).filter(Boolean) : [];
     if (nodes.length === 0) {
       return res.status(400).json({ error: "Add at least one RPC node." });
     }
 
-    writeConfig({ sender: cleanSender, activeKey: keyToSave, rpcNodes: nodes });
+    writeConfig({ sender: cleanSender, activeKey: keyToSave, trackAccount: cleanTrack, rpcNodes: nodes });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -362,13 +370,14 @@ app.post("/api/transfer", async (req, res) => {
   }
 });
 
-// GET votes — last 24h vote history for the sender account
+// GET votes — last 24h vote history for the track account
 app.get("/api/votes", async (req, res) => {
   try {
     const config = readConfig();
+    const trackUser = (config.trackAccount || "").trim();
 
-    if (!hasRealSender(config)) {
-      return res.status(400).json({ error: "Please set your Steem username in Settings first." });
+    if (!trackUser) {
+      return res.status(400).json({ error: "Please set a Track Account in Settings first." });
     }
 
     const { client } = await connectClient(config, 10000);
@@ -388,7 +397,7 @@ app.get("/api/votes", async (req, res) => {
       try {
         const limit = lastIndex === -1 ? batchSize : Math.min(batchSize, lastIndex);
         history = await client.database.call("get_account_history", [
-          config.sender,
+          trackUser,
           lastIndex,
           limit,
         ]);
@@ -408,7 +417,7 @@ app.get("/api/votes", async (req, res) => {
           break;
         }
 
-        if (op[0] === "vote" && op[1].voter === config.sender) {
+        if (op[0] === "vote" && op[1].voter === trackUser) {
           votes.push({
             author: op[1].author,
             permlink: op[1].permlink,
@@ -480,7 +489,7 @@ app.get("/api/votes", async (req, res) => {
       }
     }
 
-    res.json({ sender: config.sender, votes: results, total: uniqueVotes.length });
+    res.json({ trackAccount: trackUser, votes: results, total: uniqueVotes.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

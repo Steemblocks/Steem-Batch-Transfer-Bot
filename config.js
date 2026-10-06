@@ -9,7 +9,12 @@ module.exports = {
 
   // The **active key** (private) for the sender account.
   // ⚠️  NEVER share this key or commit it to a public repo.
-  activeKey: "5J-----------------------------------------------------------------",
+  activeKey: "5J......................................",
+
+  // ── Track Account ─────────────────────────────────────────
+  // The account whose vote history and reports are tracked.
+  // This is separate from the sender — no private key needed.
+  trackAccount: "shahriar33",
 
   // ── Steem API Nodes ───────────────────────────────────────
   // The bot will try these nodes in order until one connects successfully.

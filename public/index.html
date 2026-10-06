@@ -270,6 +270,22 @@
             </span>
           </div>
 
+          <div class="form-divider"></div>
+
+          <div class="form-group">
+            <label for="inputTrackAccount">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Track Account
+            </label>
+            <div class="input-prefix-group">
+              <span class="input-prefix">@</span>
+              <input type="text" id="inputTrackAccount" placeholder="account_to_track" spellcheck="false" autocomplete="off" />
+            </div>
+            <span class="form-hint">The account whose vote history and curation reports are tracked. No private key needed — this uses public blockchain data.</span>
+          </div>
+
+          <div class="form-divider"></div>
+
           <div class="form-group">
             <label>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
@@ -321,6 +337,29 @@
           <span class="summary-skip" id="summSkip">⏭ 0</span>
         </div>
         <button class="btn btn-ghost" id="btnDoneModal" type="button" hidden>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Confirm Modal ─── -->
+  <div class="modal-overlay" id="confirmModal" role="alertdialog" aria-modal="true"
+    aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <div class="modal confirm-modal glass-panel">
+      <div class="confirm-body">
+        <div class="confirm-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <h3 class="confirm-title" id="confirmTitle">Confirm Transfer</h3>
+        <p class="confirm-message" id="confirmMessage"></p>
+        <div class="confirm-details" id="confirmDetails" hidden></div>
+        <p class="confirm-warning" id="confirmWarning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>This action is irreversible.</span>
+        </p>
+      </div>
+      <div class="modal-footer confirm-footer">
+        <button class="btn btn-ghost" id="btnConfirmCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmOk" type="button">Send</button>
       </div>
     </div>
   </div>

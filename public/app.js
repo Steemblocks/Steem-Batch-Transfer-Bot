@@ -150,7 +150,7 @@
   const accountChip = $("#accountChip");
   const accountName = $("#accountName");
 
-  let account = { sender: "", hasKey: false, keyHint: "", rpcNodes: [] };
+  let account = { sender: "", hasKey: false, keyHint: "", trackAccount: "", rpcNodes: [] };
 
   function renderAccountChip() {
     accountChip.classList.remove("is-loading", "is-ready", "is-warning");
@@ -184,6 +184,7 @@
   function setDirty(dirty) {
     recipientsDirty = dirty;
     btnSaveRecipients.classList.toggle("has-changes", dirty);
+    btnSaveRecipients.disabled = !dirty;
     show(navDirtyDot, dirty);
   }
 
@@ -323,6 +324,7 @@
 
   const inputSender = $("#inputSender");
   const inputKey = $("#inputKey");
+  const inputTrackAccount = $("#inputTrackAccount");
   const keyHint = $("#keyHint");
   const keyStatus = $("#keyStatus");
   const btnToggleKey = $("#btnToggleKey");
@@ -332,6 +334,16 @@
   const settingsForm = $("#settingsForm");
 
   let rpcNodes = [];
+  let settingsDirty = false;
+
+  function setSettingsDirty(dirty) {
+    settingsDirty = dirty;
+    btnSaveSettings.disabled = !dirty;
+  }
+
+  settingsForm.addEventListener("input", () => {
+    setSettingsDirty(true);
+  });
 
   function renderNodes() {
     nodesContainer.innerHTML = rpcNodes
@@ -357,11 +369,13 @@
     const btn = e.target.closest(".btn-remove-node");
     if (!btn) return;
     rpcNodes.splice(parseInt(btn.dataset.nodeIndex, 10), 1);
+    setSettingsDirty(true);
     renderNodes();
   });
 
   btnAddNode.addEventListener("click", () => {
     rpcNodes.push("");
+    setSettingsDirty(true);
     renderNodes();
     const input = $(".node-row:last-child input", nodesContainer);
     if (input) input.focus();
@@ -387,11 +401,14 @@
     }
     rpcNodes = (account.rpcNodes || []).slice();
     renderNodes();
+    inputTrackAccount.value = account.trackAccount || "";
+    setSettingsDirty(false);
   }
 
   async function saveSettings() {
     const sender = inputSender.value.trim().replace(/^@/, "");
     const activeKey = inputKey.value.trim();
+    const trackAccount = inputTrackAccount.value.trim().replace(/^@/, "");
     const nodes = rpcNodes.map((n) => n.trim()).filter(Boolean);
 
     if (!sender) {
@@ -410,16 +427,18 @@
     }
 
     const senderChanged = sender.toLowerCase() !== (account.sender || "").toLowerCase();
+    const trackChanged = trackAccount.toLowerCase() !== (account.trackAccount || "").toLowerCase();
 
     btnSaveSettings.classList.add("loading");
     try {
       await api("/api/config", {
         method: "POST",
-        body: JSON.stringify({ sender, activeKey, rpcNodes: nodes }),
+        body: JSON.stringify({ sender, activeKey, trackAccount, rpcNodes: nodes }),
       });
       await loadAccount();
-      if (senderChanged) resetVotes();
+      if (trackChanged) resetVotes();
       toast("Settings saved successfully!", "success");
+      setSettingsDirty(false);
     } catch (err) {
       toast(`Save failed: ${err.message}`, "error");
     } finally {
@@ -485,9 +504,22 @@
       return isNaN(amt) ? sum : (Math.round(sum * 1000) + Math.round(amt * 1000)) / 1000;
     }, 0);
 
-    if (!confirm(`Send ${totalSteem.toFixed(3)} STEEM to ${recipients.length} recipient(s) from @${account.sender}?\n\nThis action is irreversible.`)) {
-      return;
-    }
+    const rows = validRecipients
+      .map((r) => {
+        const amt = parseFloat(r.amount);
+        return `<div class="confirm-row"><span class="cr-to">@${esc(String(r.to).trim())}</span>` +
+          `<span class="cr-amt">${isNaN(amt) ? esc(r.amount) : amt.toFixed(3)} STEEM</span></div>`;
+      })
+      .join("");
+
+    const confirmed = await confirmDialog({
+      title: "Confirm Transfer",
+      message: `Send <strong>${totalSteem.toFixed(3)} STEEM</strong> to <strong>${recipients.length}</strong> recipient(s) from <strong>@${esc(account.sender)}</strong>?`,
+      detailsHtml: rows +
+        `<div class="confirm-row confirm-total"><span class="cr-to">Total</span><span class="cr-amt">${totalSteem.toFixed(3)} STEEM</span></div>`,
+      confirmText: "Send Transfers",
+    });
+    if (!confirmed) return;
 
     // Open modal
     openModal();
@@ -690,7 +722,7 @@
       votesRequest = api("/api/votes")
         .then((data) => {
           loadedVotes = data.votes || [];
-          loadedSender = data.sender || "";
+          loadedSender = data.trackAccount || "";
           votesFetchedOnce = true;
           return data;
         })
@@ -710,7 +742,7 @@
       const data = await fetchVotes();
 
       if (loadedVotes.length === 0) {
-        votesEmptyText.innerHTML = `No votes found in the last 24 hours for <strong>@${esc(data.sender)}</strong>.`;
+        votesEmptyText.innerHTML = `No votes found in the last 24 hours for <strong>@${esc(data.trackAccount)}</strong>.`;
         votesFilterMatch.textContent = "";
         show(votesEmpty);
       } else {
@@ -739,7 +771,7 @@
     votesGrid.innerHTML = "";
     votesFilterMatch.textContent = "";
     hide(votesFooter);
-    votesEmptyText.innerHTML = 'Click <strong>"Load Votes"</strong> to fetch your recent votes.';
+    votesEmptyText.innerHTML = 'Click <strong>"Load Votes"</strong> to fetch recent votes for your track account.';
     btnRefreshVotesLabel.textContent = "Load Votes";
     show(votesEmpty);
     resetReport();
@@ -908,8 +940,65 @@
   });
 
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && confirmModal.classList.contains("open")) return; // handled by confirm dialog
     if (e.key === "Escape" && transferModal.classList.contains("open")) closeModal();
   });
+
+  // ── Confirm Dialog ─────────────────────────────────────────
+
+  const confirmModal = $("#confirmModal");
+  const confirmTitle = $("#confirmTitle");
+  const confirmMessage = $("#confirmMessage");
+  const confirmDetails = $("#confirmDetails");
+  const btnConfirmOk = $("#btnConfirmOk");
+  const btnConfirmCancel = $("#btnConfirmCancel");
+
+  /**
+   * In-app replacement for window.confirm(). Resolves true on confirm,
+   * false on cancel / Escape / backdrop click.
+   * `message` and `detailsHtml` are inserted as HTML — escape user data first.
+   */
+  function confirmDialog({ title = "Are you sure?", message = "", detailsHtml = "", confirmText = "Confirm", cancelText = "Cancel" } = {}) {
+    return new Promise((resolve) => {
+      const prevFocus = document.activeElement;
+      confirmTitle.textContent = title;
+      confirmMessage.innerHTML = message;
+      confirmDetails.innerHTML = detailsHtml;
+      confirmDetails.hidden = !detailsHtml;
+      btnConfirmOk.textContent = confirmText;
+      btnConfirmCancel.textContent = cancelText;
+
+      const finish = (result) => {
+        confirmModal.classList.remove("open");
+        btnConfirmOk.removeEventListener("click", onOk);
+        btnConfirmCancel.removeEventListener("click", onCancel);
+        confirmModal.removeEventListener("click", onBackdrop);
+        document.removeEventListener("keydown", onKey, true);
+        if (prevFocus && prevFocus.focus) prevFocus.focus();
+        resolve(result);
+      };
+      const onOk = () => finish(true);
+      const onCancel = () => finish(false);
+      const onBackdrop = (e) => { if (e.target === confirmModal) finish(false); };
+      const onKey = (e) => {
+        if (e.key === "Escape") { e.preventDefault(); finish(false); }
+        else if (e.key === "Tab") {
+          // Keep focus trapped between the two buttons
+          e.preventDefault();
+          (document.activeElement === btnConfirmOk ? btnConfirmCancel : btnConfirmOk).focus();
+        }
+      };
+
+      btnConfirmOk.addEventListener("click", onOk);
+      btnConfirmCancel.addEventListener("click", onCancel);
+      confirmModal.addEventListener("click", onBackdrop);
+      document.addEventListener("keydown", onKey, true);
+
+      confirmModal.classList.add("open");
+      // Focus Cancel by default — safer for an irreversible action
+      setTimeout(() => btnConfirmCancel.focus(), 50);
+    });
+  }
 
   // Warn before closing the tab with unsaved edits or a running batch
   window.addEventListener("beforeunload", (e) => {

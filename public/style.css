@@ -657,6 +657,12 @@ code {
   gap: 22px;
 }
 
+.form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
 .form-group label {
   display: flex;
   align-items: center;
@@ -919,6 +925,117 @@ code {
   align-items: center;
   justify-content: space-between;
   background: var(--bg);
+}
+
+/* ── Confirm dialog ── */
+
+#confirmModal { z-index: 600; }
+
+.confirm-modal {
+  max-width: 420px;
+  transform: translateY(10px) scale(0.97);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.modal-overlay.open .confirm-modal {
+  transform: translateY(0) scale(1);
+}
+
+.confirm-body {
+  padding: 28px 26px 22px;
+  text-align: center;
+  overflow-y: auto;
+}
+
+.confirm-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-hover);
+  background: var(--bg-input);
+  color: var(--white);
+}
+
+.confirm-icon svg { width: 20px; height: 20px; }
+
+.confirm-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.confirm-message strong {
+  color: var(--white);
+  font-weight: 600;
+}
+
+.confirm-details {
+  margin-top: 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  text-align: left;
+}
+
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-row:last-child { border-bottom: none; }
+
+.confirm-row .cr-to {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-row .cr-amt {
+  font-family: var(--mono);
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.confirm-row.confirm-total {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-raised);
+  font-weight: 600;
+}
+
+.confirm-row.confirm-total .cr-to { color: var(--white); }
+
+.confirm-warning {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--warn);
+}
+
+.confirm-warning svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.confirm-footer {
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .progress-bar-wrap {
